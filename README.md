@@ -1,6 +1,10 @@
 # DeepGrep // Omnisearch Dashboard
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_svg.svg)](https://deepgrep.streamlit.app/)
+
 DeepGrep is a local-first, polyglot semantic analysis and document exploration tool built using Streamlit. By combining dense deep learning vector embeddings with classical statistical keyword matching, it allows you to search across complex mixed-stack codebases and extensive project documentation entirely inside local RAM.
+
+👉 **Live Demo:** [DeepGrep // Omnisearch Engine · Streamlit](https://deepgrep.streamlit.app/)
 
 ## 🚀 Key Architectural Pillars
 
@@ -21,6 +25,7 @@ DEEPGREP/
 ├── .venv/              # Isolated virtual environment container
 ├── .gitignore          # Repository git-ignore configuration tracker
 ├── app.py              # Main operational Streamlit dashboard script
+├── requirements.txt    # Production cloud deployment dependencies
 └── README.md           # Documentation asset
 
 💻 Local Installation & Setup
