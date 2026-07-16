@@ -17,7 +17,6 @@ DeepGrep is a local-first, polyglot semantic analysis and document exploration t
 
 ## 📂 Project Workspace Topography
 
-Based on your repository workspace configuration:
 ```text
 DEEPGREP/
 │
@@ -26,6 +25,7 @@ DEEPGREP/
 ├── app.py              # Main operational Streamlit dashboard script
 ├── requirements.txt    # Production cloud deployment dependencies
 └── README.md           # Documentation asset
+```
 
 💻 Local Installation & Setup
 1. Activate Your Virtual Environment Container:
