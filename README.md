@@ -47,8 +47,9 @@ pip install streamlit sentence-transformers faiss-cpu rank_bm25 pypdf python-doc
 streamlit run app.py
 ```
 
+---
 
-📊 Analytical Search Strategy Examples
+## 📊 Analytical Search Strategy Examples
 1. Intent/Conceptual Search: Queries like "where is google app engine" or "how do we handle extreme data imbalance" process through the text encoder to fetch thematic paragraphs and page segments across PDFs or documentation assets, even if specific naming patterns differ.
 
 2. Pinpoint Word Precision: Queries targeting definitive definitions like "main method declaration" utilize the balanced keyword layer to strictly capture matching code blocks inside source assets like App.java and push helper snippets down the rank list.
