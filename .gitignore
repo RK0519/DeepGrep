@@ -1,0 +1,37 @@
+# =========================================================================
+# DeepGrep Machine Learning & Operational Project Ignored Files Registry
+# =========================================================================
+
+# 1. Local Memory Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+ENV/local/
+
+# 2. Local Deep Learning Transformer Weights & Model Caches
+.cache/
+.hf/
+huggingface/
+.notebook_checkpoints/
+~/.cache/torch/sentence_transformers/
+
+# 3. Streamlit Production Operational States
+.streamlit/config.toml
+.streamlit/secrets.toml
+.streamlit/static/
+
+# 4. Compiled Python Bytecode & Runtime Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# 5. Native OS & Disk Artifact Files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
