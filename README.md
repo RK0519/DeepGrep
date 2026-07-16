@@ -26,19 +26,26 @@ DEEPGREP/
 ├── requirements.txt    # Production cloud deployment dependencies
 └── README.md           # Documentation asset
 ```
+---
 
-💻 Local Installation & Setup
+## 💻 Local Installation & Setup
 1. Activate Your Virtual Environment Container:
 
+```text
 .venv\Scripts\activate
+```
 
 2. Install Deep Learning & Core Framework Libraries:
 
+```text
 pip install streamlit sentence-transformers faiss-cpu rank_bm25 pypdf python-docx numpy
+```
 
 3. Ignite the Application Dashboard:
 
+```text
 streamlit run app.py
+```
 
 
 📊 Analytical Search Strategy Examples
