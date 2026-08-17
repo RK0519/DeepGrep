@@ -3,10 +3,12 @@ import ast
 import re
 import csv
 import io
+import os
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
+from groq import Groq
 
 # External document reader libraries
 from pypdf import PdfReader
@@ -238,6 +240,22 @@ if "keyword_finder" not in st.session_state:
 if "tracked_filenames" not in st.session_state:
     st.session_state.tracked_filenames = set()
 
+# --- HELPER: RESOLVE GROQ API KEY ---
+def get_groq_api_key():
+    # 1. Check Streamlit Secrets (for cloud deployment)
+    try:
+        if "GROQ_API_KEY" in st.secrets:
+            return st.secrets["GROQ_API_KEY"]
+    except Exception:
+        pass
+    
+    # 2. Check session state / sidebar input
+    if st.session_state.get("groq_key_input"):
+        return st.session_state.groq_key_input
+        
+    # 3. Check environment variable (local setup)
+    return os.environ.get("GROQ_API_KEY", "")
+
 # --- SIDEBAR: CONTROLS ---
 with st.sidebar:
     st.markdown("### ⚙️ Engine Control Room")
@@ -247,6 +265,19 @@ with st.sidebar:
         accept_multiple_files=True
     )
     
+    st.markdown("---")
+    st.markdown("### 🤖 Llama / Groq Configuration")
+    
+    # Pre-load existing env key if available
+    default_key = os.environ.get("GROQ_API_KEY", "")
+    st.text_input(
+        "Groq API Key (Optional)", 
+        type="password", 
+        value=default_key, 
+        key="groq_key_input",
+        help="Provide your Groq key here if not already configured in your environment or Streamlit secrets."
+    )
+
     if st.button("Index Workspace", use_container_width=True, type="primary"):
         if uploaded_files:
             extracted_chunks = []
@@ -301,7 +332,7 @@ if st.session_state.code_database:
             if v_max == v_min:
                 return np.zeros_like(values)
             scaled = (values - v_min) / (v_max - v_min)
-            return (1.0 - scaled) if invert else scaled  # ✅ Changed to match the parameter name
+            return (1.0 - scaled) if invert else scaled
 
         semantic_scores_mapped = np.zeros(total_chunks)
         for placement, idx in enumerate(space_indices[0]):
@@ -310,7 +341,7 @@ if st.session_state.code_database:
         scaled_semantic = scale_scores(semantic_scores_mapped, invert=True)
         scaled_keywords = scale_scores(keyword_scores)
         
-        # FIXED USER RATIO: Sharp 50% Intent Concept + 50% Word Precision matching distribution
+        # Sharp 50% Intent Concept + 50% Word Precision matching distribution
         final_scores = (0.5 * scaled_semantic) + (0.5 * scaled_keywords)
         
         sorted_indices = np.argsort(final_scores)[::-1]
@@ -338,19 +369,56 @@ if st.session_state.code_database:
                     match_item = st.session_state.code_database[idx]
                     percentage = int(final_scores[idx] * 100)
                     
-                    # Deduce display formatting frame
                     f_name = match_item['filename']
                     if f_name.endswith(('.py', '.js', '.ts', '.java', '.c', '.cpp', '.sql')):
                         lang_theme = "python" if f_name.endswith('.py') else ("javascript" if f_name.endswith(('.js', '.ts')) else "java")
                         code_display = match_item["code"]
                     else:
-                        # For text blocks, PDFs, or CSV rows, display as clean formatting markdown text
                         lang_theme = "markdown"
                         code_display = match_item["code"]
                     
                     header_line = f"📄 {match_item['filename']} | {match_item['type']} — Match Score: {percentage}%"
                     with st.expander(header_line, expanded=(idx == best_matches[0])):
                         st.code(code_display, language=lang_theme)
+                
+                # --- LLAMA / GROQ AI RAG SYNTHESIS SECTION ---
+                st.markdown("---")
+                st.markdown("### 🦙 Llama 3.3 AI Synthesis (RAG)")
+                
+                active_groq_key = get_groq_api_key()
+                if not active_groq_key:
+                    st.info("💡 Enter your **Groq API Key** in the sidebar or configure it in your Streamlit secrets to enable Llama-powered AI synthesis.")
+                else:
+                    if st.button("Generate Answer with Llama 3.3 (Groq)", type="primary", use_container_width=True):
+                        try:
+                            # Build context from top 3 matched chunks
+                            context_blocks = []
+                            for idx in best_matches[:3]:
+                                item = st.session_state.code_database[idx]
+                                context_blocks.append(f"File: {item['filename']} ({item['type']})\n{item['code']}")
+                            
+                            combined_context = "\n\n".join(context_blocks)
+                            
+                            system_prompt = "You are an expert technical assistant. Answer the user's question accurately using ONLY the provided workspace file context."
+                            user_prompt = f"WORKSPACE CONTEXT:\n{combined_context}\n\nUSER QUESTION: {user_query}"
+                            
+                            client = Groq(api_key=active_groq_key)
+                            with st.spinner("Llama 3.3 is analyzing your workspace files..."):
+                                chat_completion = client.chat.completions.create(
+                                    model="llama-3.3-70b-versatile",
+                                    messages=[
+                                        {"role": "system", "content": system_prompt},
+                                        {"role": "user", "content": user_prompt}
+                                    ],
+                                    temperature=0.2,
+                                    max_tokens=1024,
+                                )
+                                ai_response = chat_completion.choices[0].message.content
+                                st.markdown("#### 💬 Assistant Answer:")
+                                st.markdown(ai_response)
+                        except Exception as e:
+                            st.error(f"Failed to generate response: {e}")
+
             else:
                 st.info("No relevant file content matches found.")
 else:
