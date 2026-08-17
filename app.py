@@ -101,7 +101,7 @@ def split_file_into_chunks(filename, raw_bytes):
                         "line_number": page_num + 1,
                         "code": text.strip()
                     })
-        except Exception as e:
+        except Exception:
             pass
 
     # B. Word Document Ingestion (.docx)
@@ -111,7 +111,6 @@ def split_file_into_chunks(filename, raw_bytes):
             doc = Document(docx_stream)
             full_text = [para.text for para in doc.paragraphs if para.text.strip()]
             
-            # Group text blocks every 8 paragraphs to preserve vector context
             step = 8
             for i in range(0, len(full_text), step):
                 combined_block = "\n".join(full_text[i:i+step])
@@ -121,7 +120,7 @@ def split_file_into_chunks(filename, raw_bytes):
                     "line_number": i + 1,
                     "code": combined_block
                 })
-        except Exception as e:
+        except Exception:
             pass
 
     # C. CSV Spreadsheet Ingestion
@@ -131,7 +130,6 @@ def split_file_into_chunks(filename, raw_bytes):
             csv_reader = csv.reader(io.StringIO(decoded_text))
             rows = list(csv_reader)
             
-            # Format row matrices into clean descriptive sentence summaries
             step = 10
             for i in range(0, len(rows), step):
                 slice_rows = rows[i:i+step]
@@ -143,7 +141,7 @@ def split_file_into_chunks(filename, raw_bytes):
                         "line_number": i + 1,
                         "code": "\n".join(formatted_lines)
                     })
-        except Exception as e:
+        except Exception:
             pass
 
     # --- CATEGORY 2: CODE & PLAIN TEXT PROCESSING ---
@@ -225,7 +223,7 @@ def split_file_into_chunks(filename, raw_bytes):
                             "line_number": i + 1,
                             "code": code_block
                         })
-        except Exception as e:
+        except Exception:
             pass
                 
     return chunks
@@ -240,7 +238,7 @@ if "keyword_finder" not in st.session_state:
 if "tracked_filenames" not in st.session_state:
     st.session_state.tracked_filenames = set()
 
-# --- HELPER: RESOLVE GROQ API KEY ---
+# --- HELPER: RESOLVE GROQ API KEY SECURELY ---
 def get_groq_api_key():
     # 1. Check Streamlit Secrets (for cloud deployment)
     try:
@@ -249,11 +247,7 @@ def get_groq_api_key():
     except Exception:
         pass
     
-    # 2. Check session state / sidebar input
-    if st.session_state.get("groq_key_input"):
-        return st.session_state.groq_key_input
-        
-    # 3. Check environment variable (local setup)
+    # 2. Check local environment variables
     return os.environ.get("GROQ_API_KEY", "")
 
 # --- SIDEBAR: CONTROLS ---
@@ -267,16 +261,7 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### 🤖 Llama / Groq Configuration")
-    
-    # Pre-load existing env key if available
-    default_key = os.environ.get("GROQ_API_KEY", "")
-    st.text_input(
-        "Groq API Key (Optional)", 
-        type="password", 
-        value=default_key, 
-        key="groq_key_input",
-        help="Provide your Groq key here if not already configured in your environment or Streamlit secrets."
-    )
+    st.success("🔒 API Key configured securely via environment/secrets.")
 
     if st.button("Index Workspace", use_container_width=True, type="primary"):
         if uploaded_files:
@@ -341,7 +326,6 @@ if st.session_state.code_database:
         scaled_semantic = scale_scores(semantic_scores_mapped, invert=True)
         scaled_keywords = scale_scores(keyword_scores)
         
-        # Sharp 50% Intent Concept + 50% Word Precision matching distribution
         final_scores = (0.5 * scaled_semantic) + (0.5 * scaled_keywords)
         
         sorted_indices = np.argsort(final_scores)[::-1]
@@ -381,17 +365,16 @@ if st.session_state.code_database:
                     with st.expander(header_line, expanded=(idx == best_matches[0])):
                         st.code(code_display, language=lang_theme)
                 
-                # --- LLAMA / GROQ AI RAG SYNTHESIS SECTION ---
+                # --- AI RAG SYNTHESIS SECTION ---
                 st.markdown("---")
-                st.markdown("### 🦙 Llama 3.3 AI Synthesis (RAG)")
+                st.markdown("### 🦙 AI Synthesis (RAG)")
                 
                 active_groq_key = get_groq_api_key()
                 if not active_groq_key:
-                    st.info("💡 Enter your **Groq API Key** in the sidebar or configure it in your Streamlit secrets to enable Llama-powered AI synthesis.")
+                    st.info("💡 Configure your **GROQ_API_KEY** in your local environment variables or Streamlit Cloud secrets to enable AI synthesis.")
                 else:
-                    if st.button("Generate Answer with Llama 3.3 (Groq)", type="primary", use_container_width=True):
+                    if st.button("Generate Answer with AI Synthesis", type="primary", use_container_width=True):
                         try:
-                            # Build context from top 3 matched chunks
                             context_blocks = []
                             for idx in best_matches[:3]:
                                 item = st.session_state.code_database[idx]
@@ -403,9 +386,9 @@ if st.session_state.code_database:
                             user_prompt = f"WORKSPACE CONTEXT:\n{combined_context}\n\nUSER QUESTION: {user_query}"
                             
                             client = Groq(api_key=active_groq_key)
-                            with st.spinner("Llama 3.3 is analyzing your workspace files..."):
+                            with st.spinner("AI is analyzing your workspace files..."):
                                 chat_completion = client.chat.completions.create(
-                                    model="llama-3.3-70b-versatile",
+                                    model="openai/gpt-oss-120b",
                                     messages=[
                                         {"role": "system", "content": system_prompt},
                                         {"role": "user", "content": user_prompt}
