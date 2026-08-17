@@ -260,8 +260,8 @@ with st.sidebar:
     )
     
     st.markdown("---")
-    st.markdown("### 🤖 Llama / Groq Configuration")
-    st.success("🔒 API Key configured securely via environment/secrets.")
+    st.markdown("### 🤖 AI Engine Configuration")
+    st.success("🔒 Secure connection active.")
 
     if st.button("Index Workspace", use_container_width=True, type="primary"):
         if uploaded_files:
